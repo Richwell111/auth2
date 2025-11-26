@@ -51,6 +51,7 @@ export default function Home() {
                 size="lg"
                 variant="destructive"
                 action={() => authClient.signOut()}
+                successMessage="Signed out successfully"
               >
                 Sign Out
               </BetterAuthActionButton>

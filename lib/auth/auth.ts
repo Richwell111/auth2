@@ -8,8 +8,11 @@ import { createAuthMiddleware } from "better-auth/api";
 import { sendWelcomeEmail } from "../emails/welcome-email";
 import { sendDeleteAccountVerificationEmail } from "../emails/delete-account-verification";
 import { twoFactor } from "better-auth/plugins/two-factor";
-import { passkey } from "better-auth/plugins/passkey";
-import { admin } from "better-auth/plugins/admin";
+import { passkey } from "@better-auth/passkey";
+import { admin as adminPlugin } from "better-auth/plugins/admin";
+import { ac, admin, user } from "@/components/auth/permissions";
+import { organization } from "better-auth/plugins/organization";
+import { sendOrganizationInviteEmail } from "../emails/organization-invite-email";
 
 export const auth = betterAuth({
   appName: "Master Auth",
@@ -40,7 +43,6 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: true,
     sendResetPassword: async ({ user, url }) => {
-      
       await sendPasswordResetEmail({ user, url });
     },
   },
@@ -87,9 +89,33 @@ export const auth = betterAuth({
       maxAge: 60 * 5, // 5 mins
     },
   },
-  plugins: [nextCookies(), twoFactor(), passkey(),admin({
-    defaultRole: "user",
-  })],
+  plugins: [
+    nextCookies(),
+    twoFactor(),
+    passkey(),
+    adminPlugin({
+      ac,
+      roles: {
+        admin,
+        user,
+      },
+    }),
+    organization({
+      sendInvitationEmail: async ({
+        email,
+        organization,
+        inviter,
+        invitation,
+      }) => {
+        await sendOrganizationInviteEmail({
+          invitation,
+          inviter: inviter.user,
+          organization,
+          email,
+        });
+      },
+    }),
+  ],
   database: drizzleAdapter(db, {
     provider: "pg", // or "mysql", "sqlite"
   }),

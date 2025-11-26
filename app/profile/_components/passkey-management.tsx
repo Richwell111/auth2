@@ -10,7 +10,7 @@ import { LoadingSwap } from "@/components/ui/loading-swap";
 import { authClient } from "@/lib/auth/auth-client";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Passkey } from "better-auth/plugins/passkey";
+import { Passkey, passkey } from "@better-auth/passkey";
 
 import {
   Card,

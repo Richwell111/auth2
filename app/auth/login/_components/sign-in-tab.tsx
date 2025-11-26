@@ -55,6 +55,7 @@ export function SignInTab({
         },
         onSuccess: () => {
           router.push("/");
+          toast.success("Signed in successfully");
         },
       }
     );
