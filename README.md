@@ -1,36 +1,169 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
 
-First, run the development server:
+# **Master Auth — Full Authentication System with Better Auth, Stripe & Organizations**
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+A modern, production-ready authentication system built with **Next.js 15**, **Better Auth**, **PostgreSQL**, **Drizzle ORM**, **Stripe subscriptions**, and **organization / role-based access control**.
+This project demonstrates an advanced, enterprise-grade auth architecture suitable for SaaS platforms.
+
+🌍 **Live Demo:** [https://master-auth-jade.vercel.app/](https://master-auth-jade.vercel.app/)
+
+---
+
+## 🚀 **Features**
+
+### 🔐 **Authentication**
+
+* Email + password sign-up / login
+* OAuth (Google, Discord, GitHub)
+* Secure session management
+* Passkeys / WebAuthn
+* Email verification
+* Password reset
+
+### 🏢 **Organization System**
+
+* Create / join organizations
+* Invite members via email
+* Role-based permissions (owner, admin, user)
+* Active organization switching
+* Access control middleware
+
+### 👥 **User Management**
+
+* Admin dashboard
+* Impersonation (Admin → act as user)
+* Indicators + toast notifications
+* Membership handling hooks
+
+### 💳 **Stripe Billing**
+
+* Subscription plans (basic, pro)
+* Billing portal redirection
+* Trialing, renewal, period end logic
+* Upgrade, downgrade, cancellation
+* Webhook support
+
+### 🛠 **Tech Stack**
+
+* **Next.js 15**
+* **Better Auth v1**
+* **Drizzle ORM**
+* **PostgreSQL (Neon)**
+* **Stripe SDK**
+* **ShadCN/UI**
+* **React Hooks & Server Components**
+
+---
+
+## 📂 **Project Structure**
+
+```
+lib/auth/
+  ├─ auth.ts               # Better Auth main config
+  ├─ stripe.ts             # Stripe plans + logic
+  ├─ auth-client.ts        # Client-side auth usage
+
+components/
+  ├─ auth/                 # Auth UI components
+  ├─ ui/                   # ShadCN components
+  ├─ subscriptions/        # Billing UI
+
+app/
+ ├─ api/
+ │   └─ auth/stripe/webhook # Stripe webhook handler
+ ├─ dashboard/             # Main dashboard
+ ├─ admin/                 # Admin tools
+ └─ settings/subscription  # Subscription management
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🧪 **Environment Variables**
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```env
+# Database
+DATABASE_URL="postgres://..."
+DB_HOST=
+DB_PORT=
+DB_USER=
+DB_PASSWORD=
+DB_NAME=
 
-## Learn More
+# Better Auth
+BETTER_AUTH_SECRET=
+BETTER_AUTH_URL=http://localhost:3000
 
-To learn more about Next.js, take a look at the following resources:
+# Stripe
+STRIPE_SECRET_KEY=
+STRIPE_PUBLISHABLE_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_BASIC_PRICE_ID=
+STRIPE_PRO_PRICE_ID=
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Social Auth
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+DISCORD_CLIENT_ID=
+DISCORD_CLIENT_SECRET=
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Email
+EMAIL_USER=
+EMAIL_PASS=
+POSTMARK_SERVER_TOKEN=
+POSTMARK_FROM_EMAIL=
+```
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🧰 **Scripts**
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+npm run dev            # Start development server
+npm run build          # Build for production
+npm run start          # Start production server
+npm run auth:generate  # Generate DB schema from Better Auth
+```
+
+---
+
+## 📦 **Stripe CLI (for webhook testing)**
+
+Install Stripe CLI:
+
+```
+npm install -g stripe
+```
+
+Listen for webhooks:
+
+```
+stripe listen --forward-to localhost:3000/api/auth/stripe/webhook
+```
+
+---
+
+## 📝 **Subscription Plans**
+
+### Defined in `stripe.ts`
+
+```ts
+export const STRIPE_PLANS = [
+  {
+    name: "basic",
+    priceId: process.env.STRIPE_BASIC_PRICE_ID!,
+    limits: { projects: 10 }
+  },
+  {
+    name: "pro",
+    priceId: process.env.STRIPE_PRO_PRICE_ID!,
+    limits: { projects: 50 }
+  }
+];
+
+export const PLAN_TO_PRICE = {
+  basic: 19,
+  pro: 49,
+};
+
