@@ -1,22 +1,27 @@
+import { ac, admin, user } from "@/components/auth/permissions";
+import { db } from "@/drizzle/db";
+import { member } from "@/drizzle/schema";
+import { passkey } from "@better-auth/passkey";
+import { stripe } from "@better-auth/stripe";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { db } from "@/drizzle/db";
-import { nextCookies } from "better-auth/next-js";
-import { sendPasswordResetEmail } from "../emails/password-reset-email";
-import { sendEmailVerificationEmail } from "../emails/email-verification";
 import { createAuthMiddleware } from "better-auth/api";
-import { sendWelcomeEmail } from "../emails/welcome-email";
-import { sendDeleteAccountVerificationEmail } from "../emails/delete-account-verification";
-import { twoFactor } from "better-auth/plugins/two-factor";
-import { passkey } from "@better-auth/passkey";
+import { nextCookies } from "better-auth/next-js";
 import { admin as adminPlugin } from "better-auth/plugins/admin";
-import { ac, admin, user } from "@/components/auth/permissions";
 import { organization } from "better-auth/plugins/organization";
-import { sendOrganizationInviteEmail } from "../emails/organization-invite-email";
+import { twoFactor } from "better-auth/plugins/two-factor";
 import { and, desc, eq } from "drizzle-orm";
-import { member } from "@/drizzle/schema";
-import { stripe } from "@better-auth/stripe";
+import { sendDeleteAccountVerificationEmail } from "../emails/delete-account-verification";
+import { sendEmailVerificationEmail } from "../emails/email-verification";
+import { sendOrganizationInviteEmail } from "../emails/organization-invite-email";
+import { sendPasswordResetEmail } from "../emails/password-reset-email";
+import { sendWelcomeEmail } from "../emails/welcome-email";
+import { STRIPE_PLANS } from "./stripe";
 import Stripe from "stripe";
+
+const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2025-11-17.clover", // Latest API version as of Stripe SDK v20.0.0
+});
 export const auth = betterAuth({
   appName: "Master Auth",
   user: {
@@ -118,6 +123,33 @@ export const auth = betterAuth({
         });
       },
     }),
+    stripe({
+      stripeClient,
+      stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
+      createCustomerOnSignUp: true,
+      subscription: {
+        authorizeReference: async ({ user, referenceId, action }) => {
+          const memberItem = await db.query.member.findFirst({
+            where: and(
+              eq(member.organizationId, referenceId),
+              eq(member.userId, user.id)
+            ),
+          });
+
+          if (
+            action === "upgrade-subscription" ||
+            action === "cancel-subscription" ||
+            action === "restore-subscription"
+          ) {
+            return memberItem?.role === "owner";
+          }
+
+          return memberItem != null;
+        },
+        enabled: true,
+        plans: STRIPE_PLANS,
+      },
+    }),
   ],
   database: drizzleAdapter(db, {
     provider: "pg", // or "mysql", "sqlite"
@@ -136,25 +168,24 @@ export const auth = betterAuth({
       }
     }),
   },
-   databaseHooks: {
+  databaseHooks: {
     session: {
       create: {
-        before: async userSession => {
+        before: async (userSession) => {
           const membership = await db.query.member.findFirst({
             where: eq(member.userId, userSession.userId),
             orderBy: desc(member.createdAt),
             columns: { organizationId: true },
-          })
+          });
 
           return {
             data: {
               ...userSession,
               activeOrganizationId: membership?.organizationId,
             },
-          }
+          };
         },
       },
     },
   },
-
 });
