@@ -13,7 +13,10 @@ import { admin as adminPlugin } from "better-auth/plugins/admin";
 import { ac, admin, user } from "@/components/auth/permissions";
 import { organization } from "better-auth/plugins/organization";
 import { sendOrganizationInviteEmail } from "../emails/organization-invite-email";
-
+import { and, desc, eq } from "drizzle-orm";
+import { member } from "@/drizzle/schema";
+import { stripe } from "@better-auth/stripe";
+import Stripe from "stripe";
 export const auth = betterAuth({
   appName: "Master Auth",
   user: {
@@ -133,4 +136,25 @@ export const auth = betterAuth({
       }
     }),
   },
+   databaseHooks: {
+    session: {
+      create: {
+        before: async userSession => {
+          const membership = await db.query.member.findFirst({
+            where: eq(member.userId, userSession.userId),
+            orderBy: desc(member.createdAt),
+            columns: { organizationId: true },
+          })
+
+          return {
+            data: {
+              ...userSession,
+              activeOrganizationId: membership?.organizationId,
+            },
+          }
+        },
+      },
+    },
+  },
+
 });
